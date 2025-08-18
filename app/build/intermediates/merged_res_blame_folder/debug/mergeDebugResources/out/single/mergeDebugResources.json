@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.example.gridgenerator.app-debug-50:/xml_data_extraction_rules.xml.flat",
+        "source": "com.example.gridgenerator.app-main-52:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.example.gridgenerator.app-debug-50:/xml_backup_rules.xml.flat",
+        "source": "com.example.gridgenerator.app-main-52:/xml/backup_rules.xml"
+    }
+]
