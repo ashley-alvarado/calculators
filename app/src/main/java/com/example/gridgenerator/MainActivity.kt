@@ -30,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.gridgenerator.ui.theme.GridGeneratorTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -109,16 +110,23 @@ fun GridScreen(width: Int, height: Int) {
             isLoading = true
             attemptsCount = 0
             var foundLayout = false
-            withContext(Dispatchers.Default) {
-                val newPlantCells = generatePlantLayout(width, height, highlightedCells, densityRequirement)
-                withContext(Dispatchers.Main) {
-                    //if (newPlantCells.size >= (width * height) * densityRequirement) {
-                        plantCells.clear()
-                        plantCells.addAll(newPlantCells)
-                        foundLayout = true
-                    //}
+            
+            val densityTarget = (width * height * densityRequirement).toInt()
+
+            while (attemptsCount < 1000 && !foundLayout) {
+                attemptsCount++
+                val newPlantCells = withContext(Dispatchers.Default) {
+                    generatePlantLayout(width, height, highlightedCells)
                 }
+                
+                if (newPlantCells.size >= densityTarget) {
+                    plantCells.clear()
+                    plantCells.addAll(newPlantCells)
+                    foundLayout = true
+                }
+                delay(1)
             }
+            
             isLoading = false
         }
     }
@@ -135,7 +143,7 @@ fun GridScreen(width: Int, height: Int) {
         }
 
         Button(onClick = {
-            densityRequirement = 0.6f
+            densityRequirement = 0.58f
             triggerLayoutGen++
         }) {
             Text("Generate extremely optimum layout")
@@ -144,7 +152,8 @@ fun GridScreen(width: Int, height: Int) {
         Box(
             modifier = Modifier
                 .weight(1f)
-                .padding(20.dp)
+                .padding(20.dp),
+            contentAlignment = Alignment.Center
         ) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(width),
@@ -216,13 +225,20 @@ fun GridScreen(width: Int, height: Int) {
             }
 
             if (isLoading) {
-                Column(
+                Box(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
-                    Text("Attempt: $attemptsCount")
+                    Canvas(modifier = Modifier.size(120.dp)) {
+                        drawCircle(color = Color.Black.copy(alpha = 0.5f), radius = size.minDimension / 2)
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Attempt: $attemptsCount", color = Color.White)
+                    }
                 }
             }
         }
@@ -234,12 +250,7 @@ fun GridScreen(width: Int, height: Int) {
     }
 }
 
-fun generatePlantLayout(
-    width: Int,
-    height: Int,
-    highlightedCells: List<Int>,
-    densityRequirement: Float
-): List<Int> {
+fun generatePlantLayout(width: Int, height: Int, highlightedCells: List<Int>): List<Int> {
     if (highlightedCells.isEmpty()) {
         return (0 until width * height).toList()
     }
@@ -247,22 +258,7 @@ fun generatePlantLayout(
     var bestLayout: List<Int> = emptyList()
     var maxPlants = -1
 
-    var count = 0
-    while (densityRequirement > 0.5 && count < 300) {
-        for (exit in highlightedCells) {
-
-            val currentLayout = generateLayoutForSingleExit(width, height, exit)
-            if (currentLayout.size > maxPlants) {
-                maxPlants = currentLayout.size
-                bestLayout = currentLayout
-            }
-        }
-        count++
-    }
     for (exit in highlightedCells) {
-//        if (densityRequirement > .5 && count > 1000) {
-//
-//        }
         val currentLayout = generateLayoutForSingleExit(width, height, exit)
         if (currentLayout.size > maxPlants) {
             maxPlants = currentLayout.size
