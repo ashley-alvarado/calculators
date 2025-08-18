@@ -110,16 +110,13 @@ fun GridScreen(width: Int, height: Int) {
             attemptsCount = 0
             var foundLayout = false
             withContext(Dispatchers.Default) {
-                while (attemptsCount < 1000 && !foundLayout) {
-                    val newPlantCells = generatePlantLayout(width, height, highlightedCells)
-                    withContext(Dispatchers.Main) {
-                        attemptsCount++
-                        if (newPlantCells.size >= (width * height) * densityRequirement) {
-                            plantCells.clear()
-                            plantCells.addAll(newPlantCells)
-                            foundLayout = true
-                        }
-                    }
+                val newPlantCells = generatePlantLayout(width, height, highlightedCells, densityRequirement)
+                withContext(Dispatchers.Main) {
+                    //if (newPlantCells.size >= (width * height) * densityRequirement) {
+                        plantCells.clear()
+                        plantCells.addAll(newPlantCells)
+                        foundLayout = true
+                    //}
                 }
             }
             isLoading = false
@@ -237,15 +234,48 @@ fun GridScreen(width: Int, height: Int) {
     }
 }
 
-fun generatePlantLayout(width: Int, height: Int, highlightedCells: List<Int>): List<Int> {
+fun generatePlantLayout(
+    width: Int,
+    height: Int,
+    highlightedCells: List<Int>,
+    densityRequirement: Float
+): List<Int> {
     if (highlightedCells.isEmpty()) {
-        return emptyList()
+        return (0 until width * height).toList()
     }
 
+    var bestLayout: List<Int> = emptyList()
+    var maxPlants = -1
+
+    var count = 0
+    while (densityRequirement > 0.5 && count < 300) {
+        for (exit in highlightedCells) {
+
+            val currentLayout = generateLayoutForSingleExit(width, height, exit)
+            if (currentLayout.size > maxPlants) {
+                maxPlants = currentLayout.size
+                bestLayout = currentLayout
+            }
+        }
+        count++
+    }
+    for (exit in highlightedCells) {
+//        if (densityRequirement > .5 && count > 1000) {
+//
+//        }
+        val currentLayout = generateLayoutForSingleExit(width, height, exit)
+        if (currentLayout.size > maxPlants) {
+            maxPlants = currentLayout.size
+            bestLayout = currentLayout
+        }
+    }
+    return bestLayout
+}
+
+fun generateLayoutForSingleExit(width: Int, height: Int, unblockedExit: Int): List<Int> {
     val plantCells = (0 until width * height).toMutableSet()
-    val corridorCells = mutableSetOf<Int>()
-    corridorCells.addAll(highlightedCells)
-    plantCells.removeAll(highlightedCells)
+    val corridorCells = mutableSetOf(unblockedExit)
+    plantCells.remove(unblockedExit)
 
     while (true) {
         val invalidPlants = plantCells.filter { plant ->
@@ -274,7 +304,6 @@ fun generatePlantLayout(width: Int, height: Int, highlightedCells: List<Int>): L
             plantCells.remove(plantToConnect)
         }
     }
-
     return plantCells.toList()
 }
 
