@@ -103,6 +103,7 @@ fun GridScreen(width: Int, height: Int) {
     var isLoading by remember { mutableStateOf(false) }
     var attemptsCount by remember { mutableStateOf(0) }
     var triggerLayoutGen by remember { mutableStateOf(0) }
+    var triggerExtremeLayoutGen by remember { mutableStateOf(0) }
     var densityRequirement by remember { mutableStateOf(0.5f) }
 
     if (triggerLayoutGen > 0) {
@@ -131,6 +132,31 @@ fun GridScreen(width: Int, height: Int) {
         }
     }
 
+    if (triggerExtremeLayoutGen > 0) {
+        LaunchedEffect(triggerExtremeLayoutGen) {
+            isLoading = true
+            attemptsCount = 0
+            var bestLayout: List<Int> = emptyList()
+            var maxPlants = -1
+
+            while (attemptsCount < 500) {
+                attemptsCount++
+                val newPlantCells = withContext(Dispatchers.Default) {
+                    generatePlantLayout(width, height, highlightedCells)
+                }
+                if (newPlantCells.size > maxPlants) {
+                    maxPlants = newPlantCells.size
+                    bestLayout = newPlantCells
+                }
+                delay(1)
+            }
+            
+            plantCells.clear()
+            plantCells.addAll(bestLayout)
+            isLoading = false
+        }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
@@ -143,8 +169,7 @@ fun GridScreen(width: Int, height: Int) {
         }
 
         Button(onClick = {
-            densityRequirement = 0.58f
-            triggerLayoutGen++
+            triggerExtremeLayoutGen++
         }) {
             Text("Generate extremely optimum layout")
         }
