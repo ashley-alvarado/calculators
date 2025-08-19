@@ -1,0 +1,57 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+
+# Files for the Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+build/
+
+# Gradle files
+.gradle/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+java_pid33448.hprof
+
+# IDE files
+.idea/
+.idea/workspace.xml
+.idea/libraries/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Keystore files
+*.jks
+*.keystore
+
+# Log files
+*.log
+
+# Android Studio Navigation editor files
+.navigation/
+
+# Android Studio profiler data files
+captures/
+
+# Proguard folder & files
+proguard/
+proguard-rules.pro
+proguard-project.txt
+
+# Lint results
+lint/
+
+# C/C++ code
+.cxx/
+.externalNativeBuild/
