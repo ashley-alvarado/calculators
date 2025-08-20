@@ -15,7 +15,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +83,9 @@ fun AppNavigation() {
         }
         composable("drone_calculator") {
             DroneCalculatorScreen(navController)
+        }
+        composable("drone_motor_calculator") {
+            DroneMotorCalculatorScreen(navController)
         }
     }
 }
@@ -170,9 +176,39 @@ fun HobbyScreen(navController: NavController) {
                     }
                 }
             }
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate("drone_motor_calculator") },
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MotorIcon()
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Drone Motor & Thrust Calculator", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
         }
     }
 }
+
+@Composable
+fun MotorIcon() {
+    Canvas(modifier = Modifier.size(64.dp)) {
+        drawCircle(color = Color.DarkGray, radius = size.minDimension / 4)
+        drawRect(
+            color = Color.Gray,
+            topLeft = Offset(x = center.x - size.width / 8, y = center.y - size.height / 2),
+            size = Size(size.width / 4, size.height)
+        )
+    }
+}
+
 
 @Composable
 fun DiyIcon() {
@@ -249,6 +285,220 @@ fun GridPreviewImage() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun DroneMotorCalculatorScreen(navController: NavController) {
+    var droneWeight by remember { mutableStateOf(TextFieldValue("")) }
+    var droneWeightUnit by remember { mutableStateOf("lb") }
+    var batteryWeight by remember { mutableStateOf(TextFieldValue("")) }
+    var batteryWeightUnit by remember { mutableStateOf("lb") }
+    var equipmentWeight by remember { mutableStateOf(TextFieldValue("")) }
+    var equipmentWeightUnit by remember { mutableStateOf("lb") }
+    var totalWeight by remember { mutableStateOf(TextFieldValue("")) }
+    var totalWeightUnit by remember { mutableStateOf("lb") }
+    var thrustRatio by remember { mutableStateOf(TextFieldValue("2")) }
+    var numMotors by remember { mutableStateOf(TextFieldValue("4")) }
+
+    var totalThrust by remember { mutableStateOf<Float?>(null) }
+    var thrustPerMotor by remember { mutableStateOf<Float?>(null) }
+    var resultUnit by remember { mutableStateOf("g") }
+
+    val weightUnits = listOf("g", "kg", "lb", "oz")
+
+    fun convertToGrams(value: Float, unit: String): Float {
+        return when (unit) {
+            "kg" -> value * 1000
+            "lb" -> value * 453.592f
+            "oz" -> value * 28.3495f
+            else -> value
+        }
+    }
+
+    fun convertFromGrams(value: Float, unit: String): Float {
+        return when (unit) {
+            "kg" -> value / 1000
+            "lb" -> value / 453.592f
+            "oz" -> value / 28.3495f
+            else -> value
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Drone Motor & Thrust Calculator") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item { Text("Enter individual weights or total weight:", style = MaterialTheme.typography.titleMedium) }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+
+            item {
+                UnitInputField("Drone Weight", droneWeight, droneWeightUnit, weightUnits) { value, unit ->
+                    droneWeight = value
+                    droneWeightUnit = unit
+                }
+            }
+            item {
+                UnitInputField("Battery Weight", batteryWeight, batteryWeightUnit, weightUnits) { value, unit ->
+                    batteryWeight = value
+                    batteryWeightUnit = unit
+                }
+            }
+            item {
+                UnitInputField("Equipment Weight", equipmentWeight, equipmentWeightUnit, weightUnits) { value, unit ->
+                    equipmentWeight = value
+                    equipmentWeightUnit = unit
+                }
+            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Text("OR", style = MaterialTheme.typography.titleMedium) }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item {
+                UnitInputField("Total Weight", totalWeight, totalWeightUnit, weightUnits) { value, unit ->
+                    totalWeight = value
+                    totalWeightUnit = unit
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item {
+                TextField(
+                    value = thrustRatio,
+                    onValueChange = { thrustRatio = it },
+                    label = { Text("Thrust-to-weight ratio") }
+                )
+            }
+            item {
+                TextField(
+                    value = numMotors,
+                    onValueChange = { numMotors = it },
+                    label = { Text("Number of motors") }
+                )
+            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item {
+                Button(onClick = {
+                    val droneW = convertToGrams(droneWeight.text.toFloatOrNull() ?: 0f, droneWeightUnit)
+                    val batteryW = convertToGrams(batteryWeight.text.toFloatOrNull() ?: 0f, batteryWeightUnit)
+                    val equipmentW = convertToGrams(equipmentWeight.text.toFloatOrNull() ?: 0f, equipmentWeightUnit)
+                    val totalW = totalWeight.text.toFloatOrNull()
+
+                    val finalTotalWeightInGrams = if (totalW != null && totalW > 0) {
+                        convertToGrams(totalW, totalWeightUnit)
+                    } else {
+                        droneW + batteryW + equipmentW
+                    }
+
+                    val ratio = thrustRatio.text.toFloatOrNull() ?: 2f
+                    val motors = numMotors.text.toIntOrNull() ?: 4
+
+                    if (finalTotalWeightInGrams > 0 && motors > 0) {
+                        val totalThrustGrams = finalTotalWeightInGrams * ratio
+                        val thrustPerMotorGrams = totalThrustGrams / motors
+                        totalThrust = totalThrustGrams
+                        thrustPerMotor = thrustPerMotorGrams
+                    } else {
+                        totalThrust = null
+                        thrustPerMotor = null
+                    }
+                }) {
+                    Text("Calculate")
+                }
+            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item {
+                totalThrust?.let {
+                    val convertedThrust = convertFromGrams(it, resultUnit)
+                    Text("Total Thrust: %.2f ${resultUnit}".format(convertedThrust))
+                }
+            }
+            item {
+                thrustPerMotor?.let {
+                    val convertedThrust = convertFromGrams(it, resultUnit)
+                    Text("Thrust per Motor: %.2f ${resultUnit}".format(convertedThrust))
+                }
+            }
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Result Unit:")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    UnitDropdown(resultUnit, weightUnits) { resultUnit = it }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UnitInputField(
+    label: String,
+    value: TextFieldValue,
+    selectedUnit: String,
+    units: List<String>,
+    onValueChange: (TextFieldValue, String) -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TextField(
+            value = value,
+            onValueChange = { onValueChange(it, selectedUnit) },
+            label = { Text(label) },
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        UnitDropdown(selectedUnit, units) { onValueChange(value, it) }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UnitDropdown(
+    selectedUnit: String,
+    units: List<String>,
+    onUnitSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.width(100.dp)
+    ) {
+        TextField(
+            value = selectedUnit,
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            units.forEach { unit ->
+                DropdownMenuItem(
+                    text = { Text(unit) },
+                    onClick = {
+                        onUnitSelected(unit)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun DroneCalculatorScreen(navController: NavController) {
     var batteryCapacity by remember { mutableStateOf(TextFieldValue("")) }
     var capacityUnit by remember { mutableStateOf("Ah") }
@@ -311,7 +561,7 @@ fun DroneCalculatorScreen(navController: NavController) {
                 val weightValue = allUpWeight.text.toFloatOrNull()
                 val voltageV = batteryVoltage.text.toFloatOrNull()
                 val powerRequiredToLift = 170f // W/kg
-                val batteryDischarge = 0.8f // 80%
+                val batteryDischarge = 1f // 100%
 
                 if (capacityValue != null && weightValue != null && voltageV != null && voltageV > 0) {
                     val capacityAh = if (capacityUnit == "mAh") capacityValue / 1000 else capacityValue
