@@ -67,6 +67,9 @@ fun AppNavigation() {
         composable("main") {
             MainScreen(navController)
         }
+        composable("hobby") {
+            HobbyScreen(navController)
+        }
         composable("input") {
             InputScreen(navController)
         }
@@ -92,39 +95,103 @@ fun MainScreen(navController: NavController) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { navController.navigate("input") },
+                    .clickable { navController.navigate("hobby") },
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    GridPreviewImage()
+                    DiyIcon()
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text("Greenhouse/grow tent", style = MaterialTheme.typography.titleMedium)
-                        Text("plant layout optimization", style = MaterialTheme.typography.bodySmall)
+                    Text("Hobby", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HobbyScreen(navController: NavController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Hobby") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate("input") },
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        GridPreviewImage()
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text("Greenhouse/grow tent", style = MaterialTheme.typography.titleMedium)
+                            Text("plant layout optimization", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate("drone_calculator") },
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        DroneIcon()
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Drone Flight Time Calculator", style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
         }
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { navController.navigate("drone_calculator") },
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    DroneIcon()
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("Drone Flight Time Calculator", style = MaterialTheme.typography.titleMedium)
-                }
-            }
-        }
+    }
+}
+
+@Composable
+fun DiyIcon() {
+    Canvas(modifier = Modifier.size(64.dp)) {
+        // Simple hammer icon
+        val headWidth = size.width * 0.6f
+        val headHeight = size.height * 0.3f
+        drawRect(
+            color = Color.Gray,
+            topLeft = Offset(x = size.width * 0.2f, y = 0f),
+            size = Size(headWidth, headHeight)
+        )
+        val handleWidth = size.width * 0.2f
+        val handleHeight = size.height * 0.7f
+        drawRect(
+            color = Color(0xFF8B4513), // SaddleBrown
+            topLeft = Offset(x = center.x - handleWidth / 2, y = headHeight),
+            size = Size(handleWidth, handleHeight)
+        )
     }
 }
 
@@ -244,7 +311,7 @@ fun DroneCalculatorScreen(navController: NavController) {
                 val weightValue = allUpWeight.text.toFloatOrNull()
                 val voltageV = batteryVoltage.text.toFloatOrNull()
                 val powerRequiredToLift = 170f // W/kg
-                val batteryDischarge = 1f // 80%
+                val batteryDischarge = 0.8f // 80%
 
                 if (capacityValue != null && weightValue != null && voltageV != null && voltageV > 0) {
                     val capacityAh = if (capacityUnit == "mAh") capacityValue / 1000 else capacityValue
